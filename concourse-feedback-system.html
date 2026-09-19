@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concourse — Student Feedback &amp; Course Evaluation System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#F7F8FB; --surface:#FFFFFF; --ink:#1B2A4A; --ink-soft:#4B5670;
+  --line:#DEE3EC; --gold:#B8891E; --gold-soft:#F1E4C6;
+  --pos:#3D7A6B; --neu:#8892A6; --neg:#B4483C;
+  --pos-bg:#E6F0ED; --neu-bg:#EBEDF2; --neg-bg:#F5E7E4;
+  --shadow: 0 1px 2px rgba(27,42,74,.06);
+  --radius:3px;
+}
+[data-theme="dark"]{
+  --bg:#0F1420; --surface:#171E2E; --ink:#E7EAF0; --ink-soft:#A7B0C4;
+  --line:#2A3348; --gold:#D9AE4C; --gold-soft:#3A311C;
+  --pos:#6FBBA6; --neu:#8892A6; --neg:#E08575;
+  --pos-bg:#16261F; --neu-bg:#1D2333; --neg-bg:#2A1C1B;
+  --shadow: 0 1px 2px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Inter',system-ui,sans-serif; font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:'Source Serif 4',Georgia,serif; font-weight:600; margin:0; color:var(--ink);}
+a{color:inherit;}
+button{font-family:inherit; cursor:pointer;}
+.app{min-height:100vh; display:flex; flex-direction:column;}
+::selection{background:var(--gold-soft);}
+
+/* ---------- Landing ---------- */
+.landing{max-width:760px; margin:0 auto; padding:64px 24px 80px; text-align:left;}
+.brandmark{display:flex; align-items:center; gap:10px; margin-bottom:56px;}
+.brandmark .glyph{width:34px; height:34px; border:1.5px solid var(--ink); border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Source Serif 4',serif; font-size:17px; font-weight:600;}
+.brandmark span{font-family:'Source Serif 4',serif; font-weight:600; font-size:18px; letter-spacing:.2px;}
+.landing h1{font-size:42px; line-height:1.15; max-width:9.5em; margin-bottom:18px;}
+.landing .lede{font-size:17px; color:var(--ink-soft); max-width:34em; margin-bottom:40px;}
+.role-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin-bottom:40px;}
+.role-card{background:var(--surface); padding:26px 20px; text-align:left; border:none; display:flex; flex-direction:column; gap:8px; transition:background .15s;}
+.role-card:hover{background:var(--gold-soft);}
+.role-card .num{font-family:'Source Serif 4',serif; font-size:13px; color:var(--gold); font-weight:600;}
+.role-card h3{font-size:17px;}
+.role-card p{margin:0; font-size:13px; color:var(--ink-soft);}
+.landing-stats{display:flex; gap:36px; border-top:1px solid var(--line); padding-top:24px; flex-wrap:wrap;}
+.landing-stats div{display:flex; flex-direction:column; gap:2px;}
+.landing-stats .n{font-family:'Source Serif 4',serif; font-size:24px; font-weight:600;}
+.landing-stats .l{font-size:12px; color:var(--ink-soft);}
+@media(max-width:640px){.role-grid{grid-template-columns:1fr;} .landing h1{font-size:32px;}}
+
+/* ---------- Login ---------- */
+.login-wrap{max-width:400px; margin:60px auto; padding:0 24px;}
+.login-card{background:var(--surface); border:1px solid var(--line); padding:32px;}
+.login-card h2{font-size:22px; margin-bottom:4px;}
+.login-card .sub{color:var(--ink-soft); font-size:13px; margin-bottom:24px;}
+.field{margin-bottom:16px;}
+.field label{display:block; font-size:12px; color:var(--ink-soft); margin-bottom:6px; font-weight:500;}
+.field input, .field select{width:100%; padding:10px 12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:var(--radius); font-size:14px; font-family:inherit;}
+.field input:focus, .field select:focus{outline:2px solid var(--gold); outline-offset:-1px;}
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 18px; border-radius:var(--radius); border:1px solid var(--ink); background:var(--ink); color:var(--surface); font-size:14px; font-weight:600;}
+[data-theme="dark"] .btn{color:var(--bg);}
+.btn:hover{opacity:.88;}
+.btn.block{width:100%;}
+.btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line);}
+.btn.gold{background:var(--gold); border-color:var(--gold); color:#fff;}
+.hint{background:var(--gold-soft); border:1px solid var(--line); padding:10px 12px; font-size:12px; color:var(--ink-soft); margin-top:16px; border-radius:var(--radius);}
+.error-msg{color:var(--neg); font-size:13px; margin-top:10px;}
+.back-link{font-size:13px; color:var(--ink-soft); display:inline-block; margin-bottom:20px;}
+.back-link:hover{color:var(--ink);}
+
+/* ---------- App shell ---------- */
+.shell{display:flex; flex:1; min-height:100vh;}
+.sidebar{width:220px; flex-shrink:0; background:var(--surface); border-right:1px solid var(--line); display:flex; flex-direction:column; padding:20px 0;}
+.sidebar .brandmark{padding:0 20px; margin-bottom:28px;}
+.sidebar nav{display:flex; flex-direction:column; gap:1px; flex:1;}
+.nav-item{display:flex; align-items:center; gap:10px; padding:10px 20px; font-size:13.5px; color:var(--ink-soft); border-left:2px solid transparent; text-align:left; background:none; border-top:none;border-right:none;border-bottom:none;}
+.nav-item:hover{color:var(--ink); background:var(--bg);}
+.nav-item.active{color:var(--ink); border-left-color:var(--gold); background:var(--gold-soft); font-weight:600;}
+.sidebar-foot{padding:14px 20px 0; border-top:1px solid var(--line); margin-top:12px;}
+.who{font-size:12.5px; color:var(--ink-soft); margin-bottom:10px;}
+.who b{color:var(--ink); display:block; font-size:13.5px;}
+.main{flex:1; min-width:0; padding:28px 32px 60px; max-width:1180px;}
+.topbar{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:26px; gap:16px; flex-wrap:wrap;}
+.topbar h1{font-size:24px;}
+.topbar .desc{color:var(--ink-soft); font-size:13.5px; margin-top:4px;}
+.icon-btn{width:34px;height:34px;border:1px solid var(--line);background:var(--surface);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.mobile-topbar{display:none;}
+@media(max-width:880px){
+  .sidebar{position:fixed; z-index:40; height:100vh; transform:translateX(-100%); transition:transform .2s;}
+  .sidebar.open{transform:translateX(0); box-shadow:2px 0 12px rgba(0,0,0,.15);}
+  .main{padding:16px 16px 50px;}
+  .mobile-topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
+  .scrim{position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:30;}
+}
+
+/* ---------- Cards / grid ---------- */
+.grid{display:grid; gap:14px;}
+.stat-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); margin-bottom:24px;}
+.stat-card{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--gold); padding:16px 18px;}
+.stat-card .n{font-family:'Source Serif 4',serif; font-size:26px; font-weight:600; line-height:1.1;}
+.stat-card .l{font-size:12px; color:var(--ink-soft); margin-top:4px;}
+.card{background:var(--surface); border:1px solid var(--line); padding:20px; margin-bottom:20px;}
+.card h3{font-size:15px; margin-bottom:2px;}
+.card .card-sub{font-size:12px; color:var(--ink-soft); margin-bottom:14px;}
+.two-col{display:grid; grid-template-columns:1.3fr 1fr; gap:20px;}
+@media(max-width:880px){.two-col{grid-template-columns:1fr;}}
+.chart-wrap{position:relative; height:260px;}
+.chart-wrap.small{height:220px;}
+
+/* ---------- Tables ---------- */
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+th{text-align:left; font-weight:600; color:var(--ink-soft); font-size:11.5px; text-transform:uppercase; letter-spacing:.03em; padding:8px 10px; border-bottom:1px solid var(--line);}
+td{padding:10px 10px; border-bottom:1px solid var(--line); vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+.badge{display:inline-block; padding:2px 9px; border-radius:20px; font-size:11.5px; font-weight:600;}
+.badge.pos{background:var(--pos-bg); color:var(--pos);}
+.badge.neu{background:var(--neu-bg); color:var(--neu);}
+.badge.neg{background:var(--neg-bg); color:var(--neg);}
+.filters{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;}
+.filters select{padding:8px 10px; border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:var(--radius); font-size:13px;}
+.table-scroll{overflow-x:auto;}
+
+/* ---------- Feedback form ---------- */
+.q-row{display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid var(--line); gap:14px;}
+.q-row:last-child{border-bottom:none;}
+.q-row .qlabel{font-size:14px;}
+.stars{display:flex; gap:5px;}
+.star{width:30px;height:30px;border:1px solid var(--line);background:var(--surface);border-radius:50%;font-size:13px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;}
+.star.on{background:var(--gold); border-color:var(--gold); color:#fff;}
+textarea{width:100%; padding:12px; border:1px solid var(--line); background:var(--bg); color:var(--ink); border-radius:var(--radius); font-family:inherit; font-size:14px; resize:vertical; min-height:90px;}
+.check-row{display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--ink-soft); margin:14px 0;}
+.confirm-box{max-width:460px; margin:80px auto; text-align:center; padding:0 24px;}
+.confirm-tick{width:52px;height:52px;border-radius:50%;background:var(--pos-bg);color:var(--pos);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 20px;}
+
+/* AI insight block */
+.insight{border:1px solid var(--line); border-left:3px solid var(--gold); background:var(--gold-soft); padding:14px 16px; font-size:13.5px; line-height:1.6; margin-bottom:14px;}
+.kw-pill{display:inline-block; background:var(--surface); border:1px solid var(--line); padding:3px 10px; border-radius:20px; font-size:12px; margin:2px 4px 2px 0;}
+.empty{color:var(--ink-soft); font-size:13.5px; padding:20px 0; text-align:center;}
+</style>
+</head>
+<body>
+<div id="root" class="app"></div>
+
+<script>
+/* =========================================================
+   CONCOURSE — Student Feedback & Course Evaluation System
+   Single-file demo build. Persistence via window.storage
+   (shared=true) standing in for the Postgres/MySQL database
+   described in the brief; sentiment/keyword extraction is a
+   lightweight rule-based engine standing in for a server-side
+   NLP model.
+   ========================================================= */
+
+const QUESTIONS = [
+  {id:'teaching', label:'Teaching effectiveness'},
+  {id:'knowledge', label:'Subject knowledge'},
+  {id:'communication', label:'Communication'},
+  {id:'content', label:'Course content'},
+  {id:'materials', label:'Teaching materials'},
+  {id:'interaction', label:'Student interaction'},
+  {id:'time', label:'Time management'},
+  {id:'overall', label:'Overall satisfaction'},
+];
+
+const DEPARTMENTS = [
+  {id:'CS', name:'Computer Science'},
+  {id:'EE', name:'Electronics & Electrical'},
+  {id:'ME', name:'Mechanical Engineering'},
+];
+
+const SEMESTERS = ['Fall 2025','Spring 2026'];
+const CURRENT_SEM = 'Spring 2026';
+
+const COURSES = [
+  {id:'CS201', name:'Data Structures & Algorithms', dept:'CS'},
+  {id:'CS305', name:'Database Systems', dept:'CS'},
+  {id:'CS410', name:'Machine Learning', dept:'CS'},
+  {id:'EE210', name:'Digital Circuits', dept:'EE'},
+  {id:'EE330', name:'Signal Processing', dept:'EE'},
+  {id:'ME150', name:'Thermodynamics', dept:'ME'},
+];
+
+const FACULTY = [
+  {id:'F001', name:'Dr. Meera Nair', dept:'CS', password:'demo', courses:['CS201','CS305']},
+  {id:'F002', name:'Prof. Alan Cho', dept:'CS', password:'demo', courses:['CS410']},
+  {id:'F003', name:'Dr. Ravi Kapoor', dept:'EE', password:'demo', courses:['EE210','EE330']},
+  {id:'F004', name:'Dr. Sofia Lindqvist', dept:'ME', password:'demo', courses:['ME150']},
+];
+
+const STUDENTS = [
+  {id:'S1001', name:'Aisha Rahman', dept:'CS', password:'demo', enrollments:['CS201','CS305','CS410']},
+  {id:'S1002', name:'Ben Torres', dept:'CS', password:'demo', enrollments:['CS201','CS410']},
+  {id:'S1003', name:'Chidi Okafor', dept:'CS', password:'demo', enrollments:['CS305','CS410']},
+  {id:'S1004', name:'Dana Kowalski', dept:'EE', password:'demo', enrollments:['EE210','EE330']},
+  {id:'S1005', name:'Eli Fischer', dept:'EE', password:'demo', enrollments:['EE210']},
+  {id:'S1006', name:'Farah Haddad', dept:'ME', password:'demo', enrollments:['ME150']},
+  {id:'S1007', name:'Grace Kim', dept:'CS', password:'demo', enrollments:['CS201','CS305']},
+  {id:'S1008', name:'Hassan Ali', dept:'ME', password:'demo', enrollments:['ME150']},
+];
+
+/* Comment bank used to seed realistic AI-analyzable text */
+const COMMENT_BANK = {
+  positive: [
+    "Really clear explanations and the pace was great throughout the semester.",
+    "The instructor was always available for doubts and gave excellent examples.",
+    "Loved the hands-on assignments, they made the concepts click.",
+    "Great communication and the slides were well organized and easy to follow.",
+    "One of the best courses I have taken, very engaging lectures.",
+    "The instructor explains difficult topics in a simple and structured way.",
+  ],
+  neutral: [
+    "The course was fine overall, nothing particularly stood out.",
+    "Content was okay but could use a bit more depth in some units.",
+    "Average pace, some weeks felt rushed and others too slow.",
+  ],
+  negative: [
+    "Many students found unit 4 very difficult, more examples would help a lot.",
+    "The pace was too fast and it was hard to keep up during lectures.",
+    "Teaching materials felt outdated and confusing, needs revision.",
+    "Not enough time management, assignments were often rushed at the end.",
+    "The instructor was hard to reach outside class for doubts and clarifications.",
+    "Slides had too little detail and practice questions were missing.",
+  ],
+};
+
+const POS_WORDS = ['great','excellent','clear','love','loved','engaging','organized','helpful','best','good','available','structured','simple','easy','enjoyed','well'];
+const NEG_WORDS = ['difficult','hard','confusing','outdated','rushed','slow','too fast','missing','not enough','poor','unclear','disorganized','late','lacking'];
+const STOPWORDS = new Set(['the','and','was','were','for','with','that','this','have','are','very','more','some','felt','about','into','from','they','their','them','its','it\'s','a','an','of','to','in','on','is','be','it','as','at','or','but','not','too']);
+
+const SUGGESTIONS = [
+  {kw:['difficult','unit 4','hard to keep up','rushed'], text:'Add extra worked examples and an optional revision session for the harder units.'},
+  {kw:['pace','fast','slow'], text:'Re-balance lecture pacing and consider a mid-semester pace check-in with students.'},
+  {kw:['materials','slides','outdated','notes'], text:'Refresh course materials and slides; add more practice questions per topic.'},
+  {kw:['availability','reach','doubts','office hours'], text:'Increase office-hour availability or add a dedicated Q&A channel.'},
+  {kw:['time management','deadlines','assignments'], text:'Spread assignment deadlines more evenly across the semester.'},
+];
+
+/* ---------------- Storage helpers (shared "database") ---------------- */
+let DB = null; // {feedback:[...]}
+let dbNS = null; // claude.use("db") namespace, or null if unavailable
+
+async function loadDB(){
+  try{
+    if(window.claude && window.claude.use){ dbNS = await window.claude.use("db"); }
+  }catch(e){ dbNS = null; }
+
+  if(dbNS){
+    try{
+      const snap = await dbNS.doc("state/feedback").get();
+      if(snap.exists && snap.data() && Array.isArray(snap.data().rows) && snap.data().rows.length){
+        DB = {feedback: snap.data().rows};
+      } else {
+        DB = {feedback: seedFeedback()};
+        await saveDB();
+      }
+    }catch(e){
+      DB = {feedback: seedFeedback()};
+    }
+  } else {
+    // No db capability granted in this view — fall back to an
+    // in-memory session so the demo still works, unsaved between reloads.
+    DB = {feedback: seedFeedback()};
+  }
+}
+async function saveDB(){
+  if(!dbNS) return; // in-memory fallback: nothing to persist
+  try{ await dbNS.doc("state/feedback").set({rows: DB.feedback}); }catch(e){ /* best-effort */ }
+}
+
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function rndRating(bias){
+  // bias: 'high' | 'mid' | 'low'
+  const r = Math.random();
+  if(bias==='high') return r<0.7?5:(r<0.9?4:3);
+  if(bias==='low') return r<0.5?2:(r<0.85?3:1);
+  return r<0.4?4:(r<0.75?3:5);
+}
+function seedFeedback(){
+  const rows = [];
+  let idc = 1;
+  SEMESTERS.forEach(sem=>{
+    STUDENTS.forEach(st=>{
+      st.enrollments.forEach(courseId=>{
+        const course = COURSES.find(c=>c.id===courseId);
+        const fac = FACULTY.find(f=>f.courses.includes(courseId));
+        if(!fac) return;
+        // vary quality per faculty a bit for interesting charts
+        const facBias = {F001:'high', F002:'mid', F003:'low', F004:'mid'}[fac.id] || 'mid';
+        const ratings = {};
+        QUESTIONS.forEach(q=> ratings[q.id] = rndRating(facBias));
+        let commentPool = facBias==='high' ? [...COMMENT_BANK.positive,...COMMENT_BANK.neutral]
+                         : facBias==='low' ? [...COMMENT_BANK.negative,...COMMENT_BANK.neutral]
+                         : [...COMMENT_BANK.positive,...COMMENT_BANK.neutral,...COMMENT_BANK.negative];
+        const comment = Math.random()<0.85 ? pick(commentPool) : '';
+        rows.push({
+          id:'FB'+String(idc++).padStart(4,'0'),
+          studentId: st.id,
+          anonymous: Math.random()<0.6,
+          courseId, facultyId: fac.id, dept: course.dept, semester: sem,
+          ratings, comment,
+          submittedAt: new Date(2026, sem==='Fall 2025'?9:2, Math.ceil(Math.random()*25)).toISOString(),
+        });
+      });
+    });
+  });
+  return rows;
+}
+
+/* ---------------- Simple rule-based NLP ---------------- */
+function analyzeComment(text){
+  if(!text || !text.trim()) return {sentiment:'neutral', score:0};
+  const low = text.toLowerCase();
+  let score = 0;
+  POS_WORDS.forEach(w=>{ if(low.includes(w)) score++; });
+  NEG_WORDS.forEach(w=>{ if(low.includes(w)) score--; });
+  const sentiment = score>0?'positive':score<0?'negative':'neutral';
+  return {sentiment, score};
+}
+function extractKeywords(comments, topN=8){
+  const freq = {};
+  comments.forEach(c=>{
+    (c.toLowerCase().match(/[a-z']+/g)||[]).forEach(w=>{
+      if(w.length<4 || STOPWORDS.has(w)) return;
+      freq[w] = (freq[w]||0)+1;
+    });
+  });
+  return Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,topN).map(e=>e[0]);
+}
+function generateSuggestions(comments){
+  const joined = comments.join(' ').toLowerCase();
+  const hits = SUGGESTIONS.filter(s=> s.kw.some(k=> joined.includes(k)));
+  if(hits.length===0) return ['Comments are largely positive — continue current teaching approach and monitor future feedback.'];
+  return hits.map(h=>h.text);
+}
+function summarizeComments(comments, sentiments){
+  if(comments.length===0) return 'No written comments have been submitted yet for this selection.';
+  const posN = sentiments.filter(s=>s==='positive').length;
+  const negN = sentiments.filter(s=>s==='negative').length;
+  const kws = extractKeywords(comments, 5);
+  let lead;
+  if(posN>=negN*1.5) lead = 'Feedback is largely positive.';
+  else if(negN>posN) lead = 'Feedback points to some recurring concerns.';
+  else lead = 'Feedback is mixed.';
+  const kwPart = kws.length ? ` Students most frequently mention: ${kws.join(', ')}.` : '';
+  return lead + kwPart;
+}
+
+/* ---------------- App state ---------------- */
+const state = {
+  theme: 'light',
+  view: 'landing', // landing | login | student | faculty | admin
+  role: null,
+  user: null,
+  sidebarOpen: false,
+  loginRole: 'student',
+  loginError: '',
+  studentTab: 'dashboard',
+  feedbackTarget: null, // {courseId, facultyId}
+  feedbackDraft: null,
+  facultyTab: 'overview',
+  adminTab: 'overview',
+  filters: {dept:'all', course:'all', faculty:'all', semester:'all', year:'all'},
+  toast: null,
+};
+const charts = {}; // id -> Chart instance
+
+function setState(patch){ Object.assign(state, patch); render(); }
+
+/* ---------------- Derived data helpers ---------------- */
+function facultyName(id){ const f=FACULTY.find(x=>x.id===id); return f?f.name:id; }
+function courseName(id){ const c=COURSES.find(x=>x.id===id); return c?c.name:id; }
+function deptName(id){ const d=DEPARTMENTS.find(x=>x.id===id); return d?d.name:id; }
+
+function avg(nums){ return nums.length? (nums.reduce((a,b)=>a+b,0)/nums.length) : 0; }
+function overallScore(fb){ return avg(QUESTIONS.map(q=>fb.ratings[q.id])); }
+
+function filteredFeedback(f){
+  return DB.feedback.filter(fb=>{
+    if(f.dept!=='all' && fb.dept!==f.dept) return false;
+    if(f.course!=='all' && fb.courseId!==f.course) return false;
+    if(f.faculty!=='all' && fb.facultyId!==f.faculty) return false;
+    if(f.semester!=='all' && fb.semester!==f.semester) return false;
+    return true;
+  });
+}
+
+/* ================= RENDER ================= */
+function render(){
+  document.documentElement.setAttribute('data-theme', state.theme);
+  const root = document.getElementById('root');
+  root.innerHTML = '';
+  if(state.view==='landing') root.appendChild(renderLanding());
+  else if(state.view==='login') root.appendChild(renderLogin());
+  else root.appendChild(renderShell());
+}
+
+function el(tag, attrs={}, children=[]){
+  const e = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v])=>{
+    if(k==='class') e.className=v;
+    else if(k==='html') e.innerHTML=v;
+    else if(k.startsWith('on') && typeof v==='function') e.addEventListener(k.slice(2), v);
+    else if(v!==undefined && v!==null) e.setAttribute(k,v);
+  });
+  (Array.isArray(children)?children:[children]).forEach(c=>{
+    if(c===null||c===undefined) return;
+    e.appendChild(typeof c==='string'||typeof c==='number' ? document.createTextNode(c) : c);
+  });
+  return e;
+}
+
+function themeToggleBtn(){
+  return el('button',{class:'icon-btn', title:'Toggle theme', onclick:()=>setState({theme: state.theme==='light'?'dark':'light'})}, state.theme==='light'?'🌙':'☀');
+}
+
+/* ---------- Landing ---------- */
+function renderLanding(){
+  const totalFb = DB.feedback.length;
+  const wrap = el('div',{class:'landing'});
+  wrap.append(
+    el('div',{class:'brandmark'},[el('div',{class:'glyph'},'C'), el('span',{},'Concourse')]),
+    el('h1',{},'Course feedback that faculty actually read, and admins can act on.'),
+    el('p',{class:'lede'},'Concourse collects anonymous student ratings each semester, then turns the written comments into plain-language summaries and improvement suggestions for faculty and department heads.'),
+  );
+  const grid = el('div',{class:'role-grid'});
+  const roles = [
+    {n:'01', k:'student', t:'Student', d:'Rate your courses and instructors, anonymously if you prefer.'},
+    {n:'02', k:'faculty', t:'Faculty', d:'See your ratings, trends, and what students are saying.'},
+    {n:'03', k:'admin', t:'Admin', d:'Department-wide analytics, comparisons and reports.'},
+  ];
+  roles.forEach(r=>{
+    grid.appendChild(el('button',{class:'role-card', onclick:()=>setState({view:'login', loginRole:r.k, loginError:''})},[
+      el('span',{class:'num'},r.n), el('h3',{},r.t), el('p',{},r.d)
+    ]));
+  });
+  wrap.appendChild(grid);
+  const stats = el('div',{class:'landing-stats'});
+  [
+    [String(STUDENTS.length), 'Students'],
+    [String(FACULTY.length), 'Faculty'],
+    [String(COURSES.length), 'Courses'],
+    [String(totalFb), 'Feedback responses'],
+  ].forEach(([n,l])=> stats.appendChild(el('div',{},[el('div',{class:'n'},n), el('div',{class:'l'},l)])));
+  wrap.appendChild(stats);
+  return wrap;
+}
+
+/* ---------- Login ---------- */
+function renderLogin(){
+  const wrap = el('div',{class:'login-wrap'});
+  wrap.appendChild(el('a',{class:'back-link', href:'#', onclick:(e)=>{e.preventDefault(); setState({view:'landing'});}},'← Back'));
+  const card = el('div',{class:'login-card'});
+  const roleLabel = {student:'Student', faculty:'Faculty', admin:'Administrator'}[state.loginRole];
+  card.append(
+    el('h2',{}, roleLabel + ' sign in'),
+    el('div',{class:'sub'}, state.loginRole==='admin' ? 'Full access to analytics and management.' : 'Use your college ID to continue.'),
+  );
+
+  const roleSwitch = el('div',{class:'filters', style:'margin-bottom:18px;'});
+  ['student','faculty','admin'].forEach(r=>{
+    roleSwitch.appendChild(el('button',{class:'btn '+(state.loginRole===r?'':'ghost'), style:'padding:6px 12px; font-size:12.5px;', onclick:()=>setState({loginRole:r, loginError:''})}, r[0].toUpperCase()+r.slice(1)));
+  });
+  card.appendChild(roleSwitch);
+
+  let idVal='', pwVal='';
+  const idField = el('div',{class:'field'},[
+    el('label',{}, state.loginRole==='admin' ? 'Admin ID' : 'College ID'),
+    el('input',{type:'text', placeholder: state.loginRole==='student'?'e.g. S1001':state.loginRole==='faculty'?'e.g. F001':'ADMIN', oninput:(e)=>idVal=e.target.value})
+  ]);
+  const pwField = el('div',{class:'field'},[
+    el('label',{},'Password'),
+    el('input',{type:'password', placeholder:'demo', oninput:(e)=>pwVal=e.target.value})
+  ]);
+  card.append(idField, pwField);
+
+  if(state.loginError) card.appendChild(el('div',{class:'error-msg'}, state.loginError));
+
+  const submit = ()=>{
+    const id = idVal.trim().toUpperCase();
+    if(state.loginRole==='admin'){
+      if(id==='ADMIN' && pwVal==='admin123'){ setState({view:'admin', role:'admin', user:{id:'ADMIN', name:'Administrator'}, adminTab:'overview', loginError:''}); }
+      else setState({loginError:'Invalid admin credentials. Try ADMIN / admin123.'});
+      return;
+    }
+    if(state.loginRole==='student'){
+      const s = STUDENTS.find(x=>x.id===id);
+      if(s && pwVal==='demo'){ setState({view:'student', role:'student', user:s, studentTab:'dashboard', loginError:''}); }
+      else setState({loginError:'Student not found. Try S1001 / demo.'});
+      return;
+    }
+    const f = FACULTY.find(x=>x.id===id);
+    if(f && pwVal==='demo'){ setState({view:'faculty', role:'faculty', user:f, facultyTab:'overview', loginError:''}); }
+    else setState({loginError:'Faculty not found. Try F001 / demo.'});
+  };
+
+  card.appendChild(el('button',{class:'btn block', style:'margin-top:6px;', onclick:submit}, 'Sign in'));
+  card.appendChild(el('div',{class:'hint'}, state.loginRole==='admin' ? 'Demo credentials — ID: ADMIN, password: admin123' :
+    state.loginRole==='student' ? 'Demo credentials — try ID S1001–S1008, password: demo' :
+    'Demo credentials — try ID F001–F004, password: demo'));
+  wrap.appendChild(card);
+  return wrap;
+}
+
+/* ---------- Shell (sidebar + main) ---------- */
+function renderShell(){
+  const shell = el('div',{class:'shell'});
+  if(state.sidebarOpen){
+    shell.appendChild(el('div',{class:'scrim', onclick:()=>setState({sidebarOpen:false})}));
+  }
+  shell.appendChild(renderSidebar());
+  const main = el('div',{class:'main'});
+  main.appendChild(el('div',{class:'mobile-topbar'},[
+    el('button',{class:'icon-btn', onclick:()=>setState({sidebarOpen:true})}, '☰'),
+    themeToggleBtn(),
+  ]));
+  if(state.role==='student') main.appendChild(renderStudent());
+  if(state.role==='faculty') main.appendChild(renderFaculty());
+  if(state.role==='admin') main.appendChild(renderAdmin());
+  shell.appendChild(main);
+  return shell;
+}
+
+function renderSidebar(){
+  const sb = el('div',{class:'sidebar'+(state.sidebarOpen?' open':'')});
+  sb.appendChild(el('div',{class:'brandmark'},[el('div',{class:'glyph'},'C'), el('span',{},'Concourse')]));
+  const nav = el('nav',{});
+  let items = [];
+  if(state.role==='student') items = [['dashboard','Overview'],['feedback','Give feedback'],['history','My submissions']];
+  if(state.role==='faculty') items = [['overview','Overview'],['courses','My courses'],['insights','Feedback insights']];
+  if(state.role==='admin') items = [['overview','Overview'],['analytics','Analytics'],['courses','Courses'],['faculty','Faculty'],['students','Students'],['reports','Reports']];
+  items.forEach(([k,label])=>{
+    const tabKey = state.role+'Tab';
+    nav.appendChild(el('button',{class:'nav-item'+(state[tabKey]===k?' active':''), onclick:()=>setState({[tabKey]:k, sidebarOpen:false, feedbackTarget:null})}, label));
+  });
+  sb.appendChild(nav);
+  const foot = el('div',{class:'sidebar-foot'});
+  foot.appendChild(el('div',{class:'who'},[document.createTextNode((state.role||'').toUpperCase()), el('b',{}, state.user?state.user.name:'')]));
+  const row = el('div',{style:'display:flex; gap:8px;'});
+  row.appendChild(themeToggleBtn());
+  row.appendChild(el('button',{class:'btn ghost', style:'flex:1; padding:8px; font-size:12.5px;', onclick:()=>setState({view:'landing', role:null, user:null, sidebarOpen:false})},'Sign out'));
+  foot.appendChild(row);
+  sb.appendChild(foot);
+  return sb;
+}
+
+/* ================= STUDENT ================= */
+function renderStudent(){
+  const wrap = el('div',{});
+  if(state.studentTab==='feedback' && state.feedbackTarget) return buildFeedbackForm();
+  if(state.studentTab==='confirm') return buildConfirmation();
+
+  const top = el('div',{class:'topbar'},[
+    el('div',{},[el('h1',{},'Welcome, '+state.user.name.split(' ')[0]), el('div',{class:'desc'}, deptName(state.user.dept)+' · '+state.user.id)]),
+  ]);
+  wrap.appendChild(top);
+
+  const myFb = DB.feedback.filter(f=>f.studentId===state.user.id);
+
+  if(state.studentTab==='dashboard'){
+    const stat = el('div',{class:'grid stat-grid'});
+    [[String(state.user.enrollments.length),'Enrolled courses'],[String(myFb.length),'Feedback submitted'],[String(state.user.enrollments.length-myFb.filter(f=>f.semester===CURRENT_SEM).length),'Pending this semester']]
+      .forEach(([n,l])=> stat.appendChild(el('div',{class:'stat-card'},[el('div',{class:'n'},n), el('div',{class:'l'},l)])));
+    wrap.appendChild(stat);
+
+    const card = el('div',{class:'card'});
+    card.append(el('h3',{},'Your courses — '+CURRENT_SEM), el('div',{class:'card-sub'},'Select a course to submit feedback.'));
+    const table = el('table',{});
+    table.appendChild(el('tr',{},[el('th',{},'Course'),el('th',{},'Instructor'),el('th',{},'Status'),el('th',{},'')]));
+    state.user.enrollments.forEach(cid=>{
+      const course = COURSES.find(c=>c.id===cid);
+      const fac = FACULTY.find(f=>f.courses.includes(cid));
+      const done = myFb.some(f=>f.courseId===cid && f.facultyId===fac.id && f.semester===CURRENT_SEM);
+      const tr = el('tr',{});
+      tr.append(
+        el('td',{},[el('div',{},course.name), el('div',{style:'color:var(--ink-soft);font-size:12px;'},cid)]),
+        el('td',{}, fac.name),
+        el('td',{}, done ? el('span',{class:'badge pos'},'Submitted') : el('span',{class:'badge neu'},'Pending')),
+        el('td',{}, done ? '' : el('button',{class:'btn', style:'padding:6px 12px; font-size:12.5px;', onclick:()=>setState({studentTab:'feedback', feedbackTarget:{courseId:cid, facultyId:fac.id}})},'Give feedback'))
+      );
+      table.appendChild(tr);
+    });
+    card.appendChild(el('div',{class:'table-scroll'},table));
+    wrap.appendChild(card);
+  }
+
+  if(state.studentTab==='history'){
+    const card = el('div',{class:'card'});
+    card.append(el('h3',{},'My submissions'), el('div',{class:'card-sub'},'Feedback you have already submitted.'));
+    if(myFb.length===0) card.appendChild(el('div',{class:'empty'},'No feedback submitted yet.'));
+    else{
+      const table = el('table',{});
+      table.appendChild(el('tr',{},[el('th',{},'Course'),el('th',{},'Instructor'),el('th',{},'Semester'),el('th',{},'Overall'),el('th',{},'Anonymous')]));
+      myFb.slice().reverse().forEach(f=>{
+        table.appendChild(el('tr',{},[
+          el('td',{}, courseName(f.courseId)),
+          el('td',{}, facultyName(f.facultyId)),
+          el('td',{}, f.semester),
+          el('td',{}, overallScore(f).toFixed(1)+' / 5'),
+          el('td',{}, f.anonymous?'Yes':'No'),
+        ]));
+      });
+      card.appendChild(el('div',{class:'table-scroll'},table));
+    }
+    wrap.appendChild(card);
+  }
+
+  if(state.studentTab==='feedback' && !state.feedbackTarget){
+    const card = el('div',{class:'card'});
+    card.append(el('h3',{},'Choose a course'), el('div',{class:'card-sub'},'Pick which course and instructor you want to rate.'));
+    const table = el('table',{});
+    state.user.enrollments.forEach(cid=>{
+      const fac = FACULTY.find(f=>f.courses.includes(cid));
+      table.appendChild(el('tr',{},[
+        el('td',{}, courseName(cid)), el('td',{}, fac.name),
+        el('td',{}, el('button',{class:'btn', style:'padding:6px 12px; font-size:12.5px;', onclick:()=>setState({feedbackTarget:{courseId:cid, facultyId:fac.id}})},'Select'))
+      ]));
+    });
+    card.appendChild(table);
+    wrap.appendChild(card);
+  }
+  return wrap;
+}
+
+function buildFeedbackForm(){
+  const {courseId, facultyId} = state.feedbackTarget;
+  const fac = FACULTY.find(f=>f.id===facultyId);
+  const existing = DB.feedback.find(f=>f.studentId===state.user.id && f.courseId===courseId && f.facultyId===facultyId && f.semester===CURRENT_SEM);
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'topbar'},[el('div',{},[el('h1',{},'Feedback: '+courseName(courseId)), el('div',{class:'desc'}, fac.name+' · '+CURRENT_SEM)])]));
+
+  if(existing){
+    wrap.appendChild(el('div',{class:'card'},[
+      el('div',{class:'empty'},'You have already submitted feedback for this course this semester. Duplicate submissions are not allowed.'),
+      el('button',{class:'btn ghost', style:'margin-top:10px;', onclick:()=>setState({studentTab:'dashboard', feedbackTarget:null})},'Back to overview')
+    ]));
+    return wrap;
+  }
+
+  const draft = state.feedbackDraft || {ratings:{}, comment:'', anonymous:true};
+  state.feedbackDraft = draft;
+  QUESTIONS.forEach(q=>{ if(!draft.ratings[q.id]) draft.ratings[q.id]=0; });
+
+  const card = el('div',{class:'card'});
+  card.append(el('h3',{},'Rate each category'), el('div',{class:'card-sub'},'1 = poor, 5 = excellent.'));
+  QUESTIONS.forEach(q=>{
+    const starsWrap = el('div',{class:'stars'});
+    for(let i=1;i<=5;i++){
+      starsWrap.appendChild(el('button',{class:'star'+(draft.ratings[q.id]>=i?' on':''), onclick:()=>{ draft.ratings[q.id]=i; render(); }}, String(i)));
+    }
+    card.appendChild(el('div',{class:'q-row'},[el('span',{class:'qlabel'},q.label), starsWrap]));
+  });
+  wrap.appendChild(card);
+
+  const card2 = el('div',{class:'card'});
+  card2.append(el('h3',{},'Written comments'), el('div',{class:'card-sub'},'Optional — helps generate a summary for faculty.'));
+  const ta = el('textarea',{placeholder:'What worked well? What could improve?'});
+  ta.value = draft.comment;
+  ta.addEventListener('input', e=> draft.comment = e.target.value);
+  card2.appendChild(ta);
+  const checkRow = el('label',{class:'check-row'});
+  const cb = el('input',{type:'checkbox'});
+  cb.checked = draft.anonymous;
+  cb.addEventListener('change', e=> draft.anonymous = e.target.checked);
+  checkRow.append(cb, document.createTextNode('Submit anonymously (your identity will not be shown to faculty)'));
+  card2.appendChild(checkRow);
+  wrap.appendChild(card2);
+
+  const allRated = QUESTIONS.every(q=>draft.ratings[q.id]>0);
+  const btnRow = el('div',{style:'display:flex; gap:10px;'});
+  btnRow.appendChild(el('button',{class:'btn ghost', onclick:()=>setState({studentTab:'dashboard', feedbackTarget:null, feedbackDraft:null})},'Cancel'));
+  const submitBtn = el('button',{class:'btn'+(allRated?'':' ghost'), onclick: async ()=>{
+      if(!allRated) return;
+      const comment = draft.comment.trim();
+      const {sentiment} = analyzeComment(comment);
+      const course = COURSES.find(c=>c.id===courseId);
+      DB.feedback.push({
+        id:'FB'+String(DB.feedback.length+1).padStart(4,'0'),
+        studentId: state.user.id, anonymous: draft.anonymous,
+        courseId, facultyId, dept: course.dept, semester: CURRENT_SEM,
+        ratings: {...draft.ratings}, comment, sentiment,
+        submittedAt: new Date().toISOString(),
+      });
+      await saveDB();
+      setState({studentTab:'confirm', feedbackTarget:null, feedbackDraft:null});
+    }}, allRated? 'Submit feedback' : 'Rate every category to submit');
+  btnRow.appendChild(submitBtn);
+  wrap.appendChild(btnRow);
+  return wrap;
+}
+
+function buildConfirmation(){
+  const box = el('div',{class:'confirm-box'});
+  box.append(
+    el('div',{class:'confirm-tick'},'✓'),
+    el('h2',{},'Feedback submitted'),
+    el('p',{style:'color:var(--ink-soft); margin:10px 0 24px;'},'Thanks — your response has been recorded and will feed into the course and faculty analytics.'),
+    el('button',{class:'btn', onclick:()=>setState({studentTab:'dashboard'})},'Back to overview')
+  );
+  return box;
+}
+
+/* ================= FACULTY ================= */
+function renderFaculty(){
+  const wrap = el('div',{});
+  const myFb = DB.feedback.filter(f=>f.facultyId===state.user.id);
+  wrap.appendChild(el('div',{class:'topbar'},[el('div',{},[el('h1',{},state.user.name), el('div',{class:'desc'}, deptName(state.user.dept)+' · '+state.user.courses.map(courseName).join(', '))])]));
+
+  if(state.facultyTab==='overview'){
+    const overall = avg(myFb.map(overallScore));
+    const stat = el('div',{class:'grid stat-grid'});
+    [[overall.toFixed(2),'Average rating'],[String(myFb.length),'Responses'],[String(state.user.courses.length),'Courses taught']]
+      .forEach(([n,l])=> stat.appendChild(el('div',{class:'stat-card'},[el('div',{class:'n'},n), el('div',{class:'l'},l)])));
+    wrap.appendChild(stat);
+
+    const two = el('div',{class:'two-col'});
+    const trendCard = el('div',{class:'card'});
+    trendCard.append(el('h3',{},'Rating trend by semester'));
+    const tc = el('div',{class:'chart-wrap'}); trendCard.appendChild(tc);
+    two.appendChild(trendCard);
+
+    const catCard = el('div',{class:'card'});
+    catCard.append(el('h3',{},'Category averages'));
+    const cc = el('div',{class:'chart-wrap'}); catCard.appendChild(cc);
+    two.appendChild(catCard);
+    wrap.appendChild(two);
+
+    setTimeout(()=>{
+      makeChart('facTrend', tc, 'line', {
+        labels: SEMESTERS,
+        datasets:[{label:'Avg rating', data: SEMESTERS.map(s=> avg(myFb.filter(f=>f.semester===s).map(overallScore)).toFixed(2)), borderColor:cssv('--gold'), backgroundColor:cssv('--gold'), tension:.3}]
+      }, {scales:{y:{min:0,max:5}}});
+      makeChart('facCat', cc, 'bar', {
+        labels: QUESTIONS.map(q=>q.label),
+        datasets:[{label:'Avg', data: QUESTIONS.map(q=> avg(myFb.map(f=>f.ratings[q.id])).toFixed(2)), backgroundColor: cssv('--ink')}]
+      }, {indexAxis:'y', scales:{x:{min:0,max:5}}});
+    },0);
+
+    // strengths / improvement
+    const catAvgs = QUESTIONS.map(q=>({q, v: avg(myFb.map(f=>f.ratings[q.id]))})).sort((a,b)=>b.v-a.v);
+    const strengths = catAvgs.slice(0,2);
+    const improve = catAvgs.slice(-2);
+    const sc = el('div',{class:'two-col'});
+    const s1 = el('div',{class:'card'});
+    s1.append(el('h3',{},'Strengths'));
+    strengths.forEach(s=> s1.appendChild(el('div',{class:'q-row'},[el('span',{},s.q.label), el('span',{class:'badge pos'}, s.v.toFixed(2))])));
+    const s2 = el('div',{class:'card'});
+    s2.append(el('h3',{},'Areas for improvement'));
+    improve.forEach(s=> s2.appendChild(el('div',{class:'q-row'},[el('span',{},s.q.label), el('span',{class:'badge '+(s.v<3?'neg':'neu')}, s.v.toFixed(2))])));
+    sc.append(s1,s2);
+    wrap.appendChild(sc);
+  }
+
+  if(state.facultyTab==='courses'){
+    const card = el('div',{class:'card'});
+    card.append(el('h3',{},'My courses'));
+    const table = el('table',{});
+    table.appendChild(el('tr',{},[el('th',{},'Course'),el('th',{},'Responses'),el('th',{},'Avg rating')]));
+    state.user.courses.forEach(cid=>{
+      const cfb = myFb.filter(f=>f.courseId===cid);
+      table.appendChild(el('tr',{},[el('td',{},courseName(cid)), el('td',{},String(cfb.length)), el('td',{}, avg(cfb.map(overallScore)).toFixed(2))]));
+    });
+    card.appendChild(table);
+    wrap.appendChild(card);
+  }
+
+  if(state.facultyTab==='insights'){
+    const comments = myFb.map(f=>f.comment).filter(Boolean);
+    const sentiments = comments.map(c=>analyzeComment(c).sentiment);
+    const card = el('div',{class:'card'});
+    card.append(el('h3',{},'AI-generated summary'), el('div',{class:'card-sub'},'Based on '+comments.length+' written comments across all your courses.'));
+    card.appendChild(el('div',{class:'insight'}, summarizeComments(comments, sentiments)));
+    const kws = extractKeywords(comments, 10);
+    if(kws.length){
+      const kwWrap = el('div',{style:'margin-bottom:14px;'});
+      kws.forEach(k=> kwWrap.appendChild(el('span',{class:'kw-pill'}, k)));
+      card.appendChild(kwWrap);
+    }
+    card.appendChild(el('h4',{style:'font-size:13px; margin:14px 0 8px;'},'Suggested actions'));
+    generateSuggestions(comments).forEach(s=> card.appendChild(el('div',{class:'q-row'},[el('span',{},'→ '+s)])));
+    wrap.appendChild(card);
+
+    const listCard = el('div',{class:'card'});
+    listCard.append(el('h3',{},'Recent comments'), el('div',{class:'card-sub'},'Student identity is withheld — anonymized by policy.'));
+    if(comments.length===0) listCard.appendChild(el('div',{class:'empty'},'No written comments yet.'));
+    myFb.filter(f=>f.comment).slice().reverse().slice(0,12).forEach(f=>{
+      const {sentiment} = analyzeComment(f.comment);
+      const row = el('div',{class:'q-row'},[
+        el('div',{style:'max-width:75%;'},[el('div',{style:'font-size:13.5px;'}, f.comment), el('div',{style:'font-size:11.5px; color:var(--ink-soft); margin-top:4px;'}, courseName(f.courseId)+' · '+f.semester)]),
+        el('span',{class:'badge '+(sentiment==='positive'?'pos':sentiment==='negative'?'neg':'neu')}, sentiment)
+      ]);
+      listCard.appendChild(row);
+    });
+    wrap.appendChild(listCard);
+  }
+  return wrap;
+}
+
+/* ================= ADMIN ================= */
+function renderAdmin(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'topbar'},[el('div',{},[el('h1',{},'Admin dashboard'), el('div',{class:'desc'},'Institution-wide feedback analytics')])]));
+
+  const filterBar = el('div',{class:'filters'});
+  const mk = (label, key, options)=>{
+    const sel = el('select',{onchange:(e)=>{ state.filters[key]=e.target.value; render(); }});
+    sel.appendChild(el('option',{value:'all'}, 'All '+label));
+    options.forEach(([v,l])=> sel.appendChild(el('option',{value:v, selected: state.filters[key]===v?true:undefined}, l)));
+    sel.value = state.filters[key];
+    return sel;
+  };
+  filterBar.append(
+    mk('departments','dept', DEPARTMENTS.map(d=>[d.id,d.name])),
+    mk('courses','course', COURSES.map(c=>[c.id,c.name])),
+    mk('faculty','faculty', FACULTY.map(f=>[f.id,f.name])),
+    mk('semesters','semester', SEMESTERS.map(s=>[s,s])),
+  );
+  wrap.appendChild(filterBar);
+
+  const data = filteredFeedback(state.filters);
+
+  if(state.adminTab==='overview'){
+    const stat = el('div',{class:'grid stat-grid'});
+    [[String(STUDENTS.length),'Total students'],[String(FACULTY.length),'Total faculty'],[String(COURSES.length),'Total courses'],[String(data.length),'Feedback submissions'],[avg(data.map(overallScore)).toFixed(2),'Overall avg rating']]
+      .forEach(([n,l])=> stat.appendChild(el('div',{class:'stat-card'},[el('div',{class:'n'},n), el('div',{class:'l'},l)])));
+    wrap.appendChild(stat);
+
+    const two = el('div',{class:'two-col'});
+    const c1 = el('div',{class:'card'}); c1.append(el('h3',{},'Faculty-wise average rating')); const c1w=el('div',{class:'chart-wrap'}); c1.appendChild(c1w);
+    const c2 = el('div',{class:'card'}); c2.append(el('h3',{},'Sentiment distribution')); const c2w=el('div',{class:'chart-wrap'}); c2.appendChild(c2w);
+    two.append(c1,c2); wrap.appendChild(two);
+
+    const two2 = el('div',{class:'two-col'});
+    const c3 = el('div',{class:'card'}); c3.append(el('h3',{},'Course-wise average rating')); const c3w=el('div',{class:'chart-wrap'}); c3.appendChild(c3w);
+    const c4 = el('div',{class:'card'}); c4.append(el('h3',{},'Semester trend')); const c4w=el('div',{class:'chart-wrap'}); c4.appendChild(c4w);
+    two2.append(c3,c4); wrap.appendChild(two2);
+
+    setTimeout(()=>{
+      makeChart('admFac', c1w, 'bar', {
+        labels: FACULTY.map(f=>f.name.split(' ').slice(-1)[0]),
+        datasets:[{label:'Avg rating', data: FACULTY.map(f=> avg(data.filter(d=>d.facultyId===f.id).map(overallScore)).toFixed(2)), backgroundColor: cssv('--gold')}]
+      },{scales:{y:{min:0,max:5}}});
+
+      const sentCounts = {positive:0, neutral:0, negative:0};
+      data.forEach(d=>{ const s = d.comment ? analyzeComment(d.comment).sentiment : (overallScore(d)>=4?'positive':overallScore(d)<=2?'negative':'neutral'); sentCounts[s]++; });
+      makeChart('admSent', c2w, 'doughnut', {
+        labels:['Positive','Neutral','Negative'],
+        datasets:[{data:[sentCounts.positive,sentCounts.neutral,sentCounts.negative], backgroundColor:[cssv('--pos'),cssv('--neu'),cssv('--neg')]}]
+      },{});
+
+      makeChart('admCourse', c3w, 'bar', {
+        labels: COURSES.map(c=>c.id),
+        datasets:[{label:'Avg rating', data: COURSES.map(c=> avg(data.filter(d=>d.courseId===c.id).map(overallScore)).toFixed(2)), backgroundColor: cssv('--ink')}]
+      },{scales:{y:{min:0,max:5}}});
+
+      makeChart('admTrend', c4w, 'line', {
+        labels: SEMESTERS,
+        datasets:[{label:'Overall avg', data: SEMESTERS.map(s=> avg(data.filter(d=>d.semester===s).map(overallScore)).toFixed(2)), borderColor:cssv('--gold'), backgroundColor:cssv('--gold'), tension:.3}]
+      },{scales:{y:{min:0,max:5}}});
+    },0);
+  }
+
+  if(state.adminTab==='analytics'){
+    const card = el('div',{class:'card'});
+    card.append(el('h3',{},'Question-wise rating analysis'));
+    const cw = el('div',{class:'chart-wrap'}); card.appendChild(cw);
+    wrap.appendChild(card);
+
+    const card2 = el('div',{class:'card'});
+    card2.append(el('h3',{},'Rating distribution'));
+    const cw2 = el('div',{class:'chart-wrap'}); card2.appendChild(cw2);
+    wrap.appendChild(card2);
+
+    setTimeout(()=>{
+      makeChart('admQ', cw, 'bar', {
+        labels: QUESTIONS.map(q=>q.label),
+        datasets:[{label:'Avg', data: QUESTIONS.map(q=> avg(data.map(d=>d.ratings[q.id])).toFixed(2)), backgroundColor: cssv('--gold')}]
+      },{indexAxis:'y', scales:{x:{min:0,max:5}}});
+      const dist = [1,2,3,4,5].map(n=> data.filter(d=> Math.round(overallScore(d))===n).length);
+      makeChart('admDist', cw2, 'bar', {
+        labels:['1★','2★','3★','4★','5★'],
+        datasets:[{label:'Responses', data:dist, backgroundColor: cssv('--pos')}]
+      },{});
+    },0);
+
+    const compCard = el('div',{class:'card'});
+    compCard.append(el('h3',{},'Course / faculty comparison'));
+    const table = el('table',{});
+    table.appendChild(el('tr',{},[el('th',{},'Course'),el('th',{},'Faculty'),el('th',{},'Dept'),el('th',{},'Responses'),el('th',{},'Avg rating'),el('th',{},'Sentiment')]));
+    COURSES.forEach(c=>{
+      const fac = FACULTY.find(f=>f.courses.includes(c.id));
+      const rows = data.filter(d=>d.courseId===c.id);
+      if(rows.length===0) return;
+      const comments = rows.map(r=>r.comment).filter(Boolean);
+      const sentiments = comments.map(cm=>analyzeComment(cm).sentiment);
+      const posR = sentiments.filter(s=>s==='positive').length, negR = sentiments.filter(s=>s==='negative').length;
+      const overallSent = posR>negR?'pos':negR>posR?'neg':'neu';
+      table.appendChild(el('tr',{},[
+        el('td',{},c.name), el('td',{},fac.name), el('td',{},deptName(c.dept)),
+        el('td',{},String(rows.length)), el('td',{}, avg(rows.map(overallScore)).toFixed(2)),
+        el('td',{}, el('span',{class:'badge '+overallSent}, overallSent==='pos'?'Positive':overallSent==='neg'?'Negative':'Neutral'))
+      ]));
+    });
+    compCard.appendChild(el('div',{class:'table-scroll'},table));
+    wrap.appendChild(compCard);
+  }
+
+  if(state.adminTab==='courses'){
+    const card = el('div',{class:'card'});
+    card.append(el('h3',{},'Course management'), el('div',{class:'card-sub'},COURSES.length+' courses across '+DEPARTMENTS.length+' departments.'));
+    const table = el('table',{});
+    table.appendChild(el('tr',{},[el('th',{},'ID'),el('th',{},'Course'),el('th',{},'Department'),el('th',{},'Instructor'),el('th',{},'Responses'),el('th',{},'Avg rating')]));
+    COURSES.forEach(c=>{
+      const fac = FACULTY.find(f=>f.courses.includes(c.id));
+      const rows = DB.feedback.filter(d=>d.courseId===c.id);
+      table.appendChild(el('tr',{},[el('td',{},c.id), el('td',{},c.name), el('td',{},deptName(c.dept)), el('td',{},fac.name), el('td',{},String(rows.length)), el('td',{},avg(rows.map(overallScore)).toFixed(2))]));
+    });
+    card.appendChild(el('div',{class:'table-scroll'},table));
+    wrap.appendChild(card);
+  }
+
+  if(state.adminTab==='faculty'){
+    const card = el('div',{class:'card'});
+    card.append(el('h3',{},'Faculty management'), el('div',{class:'card-sub'}, FACULTY.length+' faculty members.'));
+    const table = el('table',{});
+    table.appendChild(el('tr',{},[el('th',{},'ID'),el('th',{},'Name'),el('th',{},'Department'),el('th',{},'Courses'),el('th',{},'Responses'),el('th',{},'Avg rating')]));
+    FACULTY.forEach(f=>{
+      const rows = DB.feedback.filter(d=>d.facultyId===f.id);
+      table.appendChild(el('tr',{},[el('td',{},f.id), el('td',{},f.name), el('td',{},deptName(f.dept)), el('td',{},f.courses.join(', ')), el('td',{},String(rows.length)), el('td',{},avg(rows.map(overallScore)).toFixed(2))]));
+    });
+    card.appendChild(el('div',{class:'table-scroll'},table));
+    wrap.appendChild(card);
+  }
+
+  if(state.adminTab==='students'){
+    const card = el('div',{class:'card'});
+    card.append(el('h3',{},'Student management'), el('div',{class:'card-sub'}, STUDENTS.length+' students enrolled.'));
+    const table = el('table',{});
+    table.appendChild(el('tr',{},[el('th',{},'ID'),el('th',{},'Name'),el('th',{},'Department'),el('th',{},'Enrolled courses'),el('th',{},'Feedback given')]));
+    STUDENTS.forEach(s=>{
+      const given = DB.feedback.filter(d=>d.studentId===s.id && d.semester===CURRENT_SEM).length;
+      table.appendChild(el('tr',{},[el('td',{},s.id), el('td',{},s.name), el('td',{},deptName(s.dept)), el('td',{},String(s.enrollments.length)), el('td',{}, given+' / '+s.enrollments.length)]));
+    });
+    card.appendChild(el('div',{class:'table-scroll'},table));
+    wrap.appendChild(card);
+  }
+
+  if(state.adminTab==='reports'){
+    const card = el('div',{class:'card'});
+    card.append(el('h3',{},'Reports'), el('div',{class:'card-sub'},'Export the currently filtered feedback data.'));
+    card.appendChild(el('button',{class:'btn', onclick:()=>exportCSV(data)},'Export CSV ('+data.length+' rows)'));
+    wrap.appendChild(card);
+
+    const sumCard = el('div',{class:'card'});
+    sumCard.append(el('h3',{},'Institution-wide AI summary'));
+    const comments = data.map(d=>d.comment).filter(Boolean);
+    const sentiments = comments.map(c=>analyzeComment(c).sentiment);
+    sumCard.appendChild(el('div',{class:'insight'}, summarizeComments(comments, sentiments)));
+    sumCard.appendChild(el('h4',{style:'font-size:13px; margin:14px 0 8px;'},'Suggested actions'));
+    generateSuggestions(comments).forEach(s=> sumCard.appendChild(el('div',{class:'q-row'},[el('span',{},'→ '+s)])));
+    wrap.appendChild(sumCard);
+  }
+
+  return wrap;
+}
+
+function exportCSV(rows){
+  const header = ['id','course','faculty','department','semester', ...QUESTIONS.map(q=>q.id), 'overall','sentiment','anonymous'];
+  const lines = [header.join(',')];
+  rows.forEach(r=>{
+    const sentiment = r.comment ? analyzeComment(r.comment).sentiment : '';
+    const line = [r.id, courseName(r.courseId), facultyName(r.facultyId), deptName(r.dept), r.semester,
+      ...QUESTIONS.map(q=>r.ratings[q.id]), overallScore(r).toFixed(2), sentiment, r.anonymous?'yes':'no'];
+    lines.push(line.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'feedback_report.csv';
+  a.click();
+}
+
+/* ---------------- Chart helper ---------------- */
+function cssv(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function makeChart(id, container, type, data, extraOpts){
+  if(charts[id]){ charts[id].destroy(); }
+  const canvas = document.createElement('canvas');
+  container.innerHTML='';
+  container.appendChild(canvas);
+  charts[id] = new Chart(canvas.getContext('2d'), {
+    type, data,
+    options: Object.assign({
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display: type==='doughnut', labels:{color:cssv('--ink-soft')}}},
+      scales: type==='doughnut' ? {} : {
+        x:{ticks:{color:cssv('--ink-soft')}, grid:{color:cssv('--line')}},
+        y:{ticks:{color:cssv('--ink-soft')}, grid:{color:cssv('--line')}}
+      }
+    }, extraOpts||{})
+  });
+}
+
+/* ---------------- Init ---------------- */
+(async function init(){
+  await loadDB();
+  render();
+})();
+</script>
+</body>
+</html>
